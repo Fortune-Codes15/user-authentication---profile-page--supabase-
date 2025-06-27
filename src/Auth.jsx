@@ -1,4 +1,3 @@
-// src/Auth.js
 import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
 import "./Auth.css";
@@ -7,13 +6,12 @@ function Auth() {
 	const [loading, setLoading] = useState(false);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [message, setMessage] = useState(""); // For user feedback
-
+	const [message, setMessage] = useState("");
 	const handleLogin = async (e) => {
 		e.preventDefault();
 
 		setLoading(true);
-		setMessage(""); // Clear previous messages
+		setMessage("");
 
 		const { error } = await supabase.auth.signInWithPassword({
 			email,
@@ -31,16 +29,13 @@ function Auth() {
 		e.preventDefault();
 
 		setLoading(true);
-		setMessage(""); // Clear previous messages
-
+		setMessage("");
 		const { data, error } = await supabase.auth.signUp({ email, password });
 
 		if (error) {
 			setMessage(error.message);
 		} else if (data.user) {
 			setMessage("Check your email for the confirmation link!");
-			// Supabase by default sends a confirmation email.
-			// After confirmation, the user will be authenticated.
 		} else {
 			setMessage(
 				"Sign up successful! Please check your email for verification.",

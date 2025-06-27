@@ -5,9 +5,9 @@ import { supabase } from "./supabaseClient";
 function Account({ session }) {
 	const [loading, setLoading] = useState(true);
 	const [username, setUsername] = useState(null);
-	const [avatarUrl, setAvatarUrl] = useState(null); // This will now store the direct public URL
+	const [avatarUrl, setAvatarUrl] = useState(null);
 	const [message, setMessage] = useState("");
-	const [uploading, setUploading] = useState(false); // State for avatar upload loading
+	const [uploading, setUploading] = useState(false);
 
 	// Fetch profile data when the session changes or component mounts
 	useEffect(() => {
@@ -25,19 +25,16 @@ function Account({ session }) {
 			if (!ignore) {
 				if (error) {
 					if (error.code === "PGRST116") {
-						// No rows found for the user_id, create a profile
 						console.log("No profile found, creating a new one.");
 						await createProfileForNewUser(user.id, user.email);
-						// After creation attempt, ensure username state is set for immediate display
 						setUsername(user.email.split("@")[0]);
-						setAvatarUrl(null); // No avatar initially
+						setAvatarUrl(null);
 					} else {
 						console.warn(error.message);
 						setMessage(`Error loading profile: ${error.message}`);
 					}
 				} else if (data) {
 					setUsername(data.username);
-					// Directly set the avatarUrl from the database, it's already the public URL
 					setAvatarUrl(data.avatar_url);
 				}
 				setLoading(false);
@@ -67,23 +64,22 @@ function Account({ session }) {
 			getProfile();
 		}
 
-		// Cleanup: No URL.revokeObjectURL needed anymore as we're not using blob URLs
 		return () => {
 			ignore = true;
 		};
-	}, [session]); // Rerun when session changes
+	}, [session]);
 
 	async function updateProfile(event) {
 		event.preventDefault();
 
-		setLoading(true); // Set loading for username/profile text update
+		setLoading(true);
 		setMessage("");
 		const { user } = session;
 
 		const updates = {
 			user_id: user.id,
 			username,
-			avatar_url: avatarUrl, // This will already be the public URL from state
+			avatar_url: avatarUrl,
 			updated_at: new Date().toISOString(),
 		};
 
@@ -99,18 +95,16 @@ function Account({ session }) {
 		setLoading(false);
 	}
 
-	// Handle avatar file upload
 	async function uploadAvatar(event) {
 		if (!event.target.files || event.target.files.length === 0) {
 			setMessage("You must select an image to upload.");
 			return;
 		}
 
-		setUploading(true); // Set uploading specifically for the avatar upload process
+		setUploading(true);
 		setMessage("");
 		const file = event.target.files[0];
 		const fileExt = file.name.split(".").pop();
-		// Use user ID as a folder and a unique name for the file
 		const filePath = `${session.user.id}/${Math.random()}.${fileExt}`;
 
 		try {
@@ -118,19 +112,16 @@ function Account({ session }) {
 				.from("avatars")
 				.upload(filePath, file, {
 					cacheControl: "3600",
-					upsert: true, // Overwrite if a file with the same path exists
+					upsert: true,
 				});
 
 			if (uploadError) {
 				throw uploadError;
 			}
 
-			// Get the public URL of the newly uploaded file
 			const {
 				data: { publicUrl },
 			} = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-			// Update the avatar_url in the user's profile in the database with the PUBLIC URL
 			const { error: updateError } = await supabase
 				.from("profiles")
 				.update({ avatar_url: publicUrl })
@@ -140,7 +131,7 @@ function Account({ session }) {
 				throw updateError;
 			}
 
-			setAvatarUrl(publicUrl); // Update local state with the new public URL for immediate display
+			setAvatarUrl(publicUrl);
 			setMessage("Avatar uploaded and profile updated!");
 		} catch (error) {
 			setMessage(`Error uploading avatar: ${error.message}`);
@@ -157,7 +148,7 @@ function Account({ session }) {
 					Your Profile
 				</h2>
 				{/* Adjusted loading check to distinguish initial data fetch vs subsequent updates */}
-				{loading && !username ? ( // Only show "Loading profile" if username is not yet loaded
+				{loading && !username ? (
 					<p className="text-center text-gray-600">Loading profile...</p>
 				) : (
 					<form onSubmit={updateProfile} className="mt-8 space-y-6">
@@ -165,7 +156,7 @@ function Account({ session }) {
 						<div className="flex flex-col items-center gap-4">
 							{avatarUrl ? (
 								<img
-									src={avatarUrl} // Use the directly fetched public URL here
+									src={avatarUrl}
 									alt="Avatar"
 									className="w-24 h-24 rounded-full object-cover border-2 border-indigo-500 shadow-md"
 								/>
@@ -179,7 +170,7 @@ function Account({ session }) {
 								className="block w-full text-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
 								{uploading ? "Uploading..." : "Upload Avatar"}
 								<input
-									className="sr-only" // Hide the actual input visually
+									className="sr-only"
 									type="file"
 									id="single"
 									accept="image/*"
